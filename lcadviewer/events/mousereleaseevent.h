@@ -7,7 +7,6 @@
 /**
   * Event that get's dispatched each time the mouse is moved.
   */
-class LcPainter;
 class MouseReleaseEvent  {
     public:
         MouseReleaseEvent() {

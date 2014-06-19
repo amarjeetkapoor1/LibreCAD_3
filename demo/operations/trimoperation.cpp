@@ -8,6 +8,8 @@
 
 TrimOperation::TrimOperation(lc::Document* document, lc::StorageManager_SPtr entityManager, QGraphicsView* graphicsView, SnapManager_SPtr  snapManager, std::shared_ptr<lc::SelectionManager> selectionManager) :
     GuiOperation(document), _graphicsView(graphicsView), _snapManager(snapManager), _entityManager(entityManager) {
+
+    /*
     connect(graphicsView, SIGNAL(drawEvent(const DrawEvent&)),
             this, SLOT(on_drawEvent(const DrawEvent&)));
     connect(snapManager.get(), SIGNAL(snapPointEvent(const SnapPointEvent&)),
@@ -44,6 +46,7 @@ TrimOperation::TrimOperation(lc::Document* document, lc::StorageManager_SPtr ent
     _machine.start();
 
     QObject::connect(&_machine, SIGNAL(finished()), this, SLOT(trimFinished()));
+    */
 }
 
 void TrimOperation::trimFinished() {

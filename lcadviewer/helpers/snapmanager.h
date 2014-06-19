@@ -15,10 +15,8 @@
  *
  * \sa lc::SnapManagerImpl
  */
-class SnapManager : public QObject {
-        Q_OBJECT
+class SnapManager {
     public:
-    signals:
         /*!
          * \brief Snap point event get emited when the snap point changed
          *

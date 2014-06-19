@@ -9,7 +9,7 @@ Pen::Pen() {
     _lineWidth = nullptr;
 }
 
-Pen::Pen(Color* color, LineWidth* lineWidth) {
+Pen::Pen(MetaColor* color, LineWidth* lineWidth) {
     _color = color;
     _lineWidth = lineWidth;
 }
@@ -28,6 +28,6 @@ LineWidth* Pen::lineWidth() const {
     return _lineWidth;
 }
 
-Color* Pen::color() const {
+MetaColor* Pen::color() const {
     return _color;
 }

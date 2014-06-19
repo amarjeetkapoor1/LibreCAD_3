@@ -8,13 +8,13 @@ Layer::Layer() {
 Layer::~Layer() {
 }
 
-Layer::Layer(const std::string& name, const LineWidth lineWidth, const Color color) : MetaType() {
+Layer::Layer(const std::string& name, const LineWidth lineWidth, const MetaColor color) : MetaType() {
     _name = name;
     _lineWidth = lineWidth;
     _color = color;
 }
 
-Color Layer::color() const {
+MetaColor Layer::color() const {
     return _color;
 }
 LineWidth Layer::lineWidth() const {

@@ -5,8 +5,9 @@
 #include "lcpainter.h"
 #include "events/drawevent.h"
 
-Cursor::Cursor(int cursorSize, LCADViewer* graphicsView, SnapManager_SPtr  snapManager, const QColor& xAxisColor, const QColor& yAxisColor) : _xAxisColor(xAxisColor), _yAxisColor(yAxisColor), _cursorSize(cursorSize) {
+Cursor::Cursor(int cursorSize, SnapManager_SPtr  snapManager, const lc::Color& xAxisColor, const lc::Color& yAxisColor) : _xAxisColor(xAxisColor), _yAxisColor(yAxisColor), _cursorSize(cursorSize) {
 
+    /*
     connect(graphicsView, SIGNAL(drawEvent(const DrawEvent&)),
             this, SLOT(on_Draw_Event(const DrawEvent&)));
 
@@ -14,7 +15,7 @@ Cursor::Cursor(int cursorSize, LCADViewer* graphicsView, SnapManager_SPtr  snapM
             this, SLOT(on_SnapPoint_Event(const SnapPointEvent&)));
 
     connect(graphicsView, SIGNAL(mouseReleaseEvent(const MouseReleaseEvent&)),
-            this, SLOT(on_MouseRelease_Event(const MouseReleaseEvent&)));
+            this, SLOT(on_MouseRelease_Event(const MouseReleaseEvent&))); */
 
 }
 
@@ -46,12 +47,12 @@ void Cursor::on_Draw_Event(const DrawEvent& event)  {
 
     event.painter()->move_to(-minDistancePoints + x, y);
     event.painter()->line_to(minDistancePoints + x, y);
-    event.painter()->source_rgba(_xAxisColor.redF(), _xAxisColor.greenF(), _xAxisColor.blueF(), _xAxisColor.alphaF());
+    event.painter()->source_rgba(_xAxisColor.red(), _xAxisColor.green(), _xAxisColor.blue(), _xAxisColor.alpha());
     event.painter()->stroke();
 
     event.painter()->move_to(x, -minDistancePoints + y);
     event.painter()->line_to(x, minDistancePoints + y);
-    event.painter()->source_rgba(_yAxisColor.redF(), _yAxisColor.greenF(), _yAxisColor.blueF(), _yAxisColor.alphaF());
+    event.painter()->source_rgba(_yAxisColor.red(), _yAxisColor.green(), _yAxisColor.blue(), _yAxisColor.alpha());
     event.painter()->stroke();
 
 
@@ -63,6 +64,7 @@ void Cursor::on_SnapPoint_Event(const SnapPointEvent& event) {
     _lastSnapEvent = event;
 }
 
+/*
 void Cursor::on_MouseRelease_Event(const MouseReleaseEvent& event) {
     if (_lastSnapEvent.status() == true) {
         MouseReleaseEvent snappedLocation(_lastSnapEvent.snapPoint(), event.entities());
@@ -70,4 +72,4 @@ void Cursor::on_MouseRelease_Event(const MouseReleaseEvent& event) {
     } else {
         emit mouseReleaseEvent(event);
     }
-}
+}*/

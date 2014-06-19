@@ -85,7 +85,6 @@ HEADERS += \
     lckernel.h\
     lckernel_global.h \
     cad/const.h\
-    cad/meta/color.h \
     cad/meta/layer.h \
     cad/meta/linewidth.h \
     cad/meta/pen.h \
@@ -152,4 +151,6 @@ HEADERS += \
     cad/primitive/dimdiametric.h \
     cad/primitive/dimradial.h \
     cad/primitive/dimlinear.h \
-    cad/primitive/coordinate.h
+    cad/primitive/coordinate.h \
+    cad/meta/metacolor.h \
+    cad/meta/color.h

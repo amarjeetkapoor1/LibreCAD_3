@@ -1,7 +1,6 @@
 #include "lcvellipse.h"
 #include "lcpainter.h"
 #include "lcdrawoptions.h"
-#include <QColor>
 LCVEllipse::LCVEllipse(const lc::Ellipse_CSPtr Ellipse) : LCVDrawItem(true), lc::Ellipse(Ellipse, true) {
 }
 
@@ -13,10 +12,10 @@ void LCVEllipse::draw(LcPainter* painter, LcDrawOptions* options, const lc::geo:
         modified = true;
         painter->save();
         painter->source_rgba(
-            options->selectedColor().redF(),
-            options->selectedColor().greenF(),
-            options->selectedColor().blueF(),
-            options->selectedColor().alphaF()
+            options->selectedColor().red(),
+            options->selectedColor().green(),
+            options->selectedColor().blue(),
+            options->selectedColor().alpha()
         );
     }
 

@@ -11,7 +11,6 @@
  * \brief Implements the SnapManager interface
  */
 class SnapManagerImpl : public SnapManager {
-        Q_OBJECT
     public:
         /*!
          * \brief Implementation of the SnapManager
@@ -23,13 +22,13 @@ class SnapManagerImpl : public SnapManager {
          *
          * \sa lc::SnapManager
          */
-        SnapManagerImpl(LCADViewer* view, lc::Snapable_CSPtr grid, double distanceToSnap);
+        SnapManagerImpl(DocumentRenderer *documentRenderer, lc::Snapable_CSPtr grid, double distanceToSnap);
 
 
         virtual void setGridSnappable(bool gridSnappable);
         virtual bool isGridSnappable() const;
 
-    public slots:
+    public:
         void on_mouseMoveEvent(const MouseMoveEvent& event);
         void on_mouseRelease_Event(const MouseReleaseEvent& event);
 

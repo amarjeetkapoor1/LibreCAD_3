@@ -7,18 +7,18 @@
 
 #include "cad/interface/variantable.h"
 #include "cad/meta/linewidth.h"
-#include "cad/meta/color.h"
+#include "cad/meta/metacolor.h"
 
 
 namespace lc {
     class Layer : public MetaType  {
         public:
             Layer();
-            Layer(const std::string& name, const LineWidth lineWidth, const Color color);
+            Layer(const std::string& name, const LineWidth lineWidth, const MetaColor color);
             virtual ~Layer();
 
             LineWidth lineWidth() const;
-            Color color() const;
+            MetaColor color() const;
             std::string name() const;
 
             bool operator == (const Layer& layer) const {
@@ -36,7 +36,7 @@ namespace lc {
         private:
             std::string _name;
             LineWidth _lineWidth;
-            Color _color;
+            MetaColor _color;
     };
     typedef std::shared_ptr<Layer> Layer_SPtr;
     typedef std::shared_ptr<const Layer> Layer_CSPtr;

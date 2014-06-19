@@ -86,6 +86,8 @@ class LCADViewer : public QWidget {
         void setVerticalOffset(int v);
         void setHorizontalOffset(int v);
 
+        DocumentRenderer* documentRenderer() const {return _docRenderer;}
+
     private:
         void on_commitProcessEvent(const lc::CommitProcessEvent&);
 

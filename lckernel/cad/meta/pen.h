@@ -3,7 +3,7 @@
 
 #include "cad/const.h"
 
-#include "color.h"
+#include "metacolor.h"
 #include "linewidth.h"
 #include "cad/interface/variantable.h"
 #include "cad/interface/metatype.h"
@@ -17,11 +17,11 @@ namespace lc {
         public:
 
             Pen();
-            Pen(Color* color, LineWidth* lineWidth);
+            Pen(MetaColor* color, LineWidth* lineWidth);
             virtual ~Pen();
 
             LineWidth* lineWidth() const;
-            Color* color() const;
+            MetaColor* color() const;
 
             bool variantValid() const {
                 return _color != nullptr && _lineWidth != nullptr;
@@ -33,7 +33,7 @@ namespace lc {
 
         private:
 
-            Color* _color;
+            MetaColor* _color;
             LineWidth* _lineWidth;
     };
 }

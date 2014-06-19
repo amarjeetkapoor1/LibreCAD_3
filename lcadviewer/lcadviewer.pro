@@ -48,7 +48,9 @@ unix {
 INCLUDEPATH += $$PWD/../lckernel
 DEPENDPATH += $$PWD/../lckernel
 
-HEADERS     = lcadviewerplugin.h \
+HEADERS     =  \
+    nano-signal-slot/nano_signal_slot.hpp \
+    lcadviewerplugin.h \
     lcadviewer.h \
     drawitems/gradientbackground.h \
     const.h \
@@ -72,7 +74,14 @@ HEADERS     = lcadviewerplugin.h \
     drawitems/lcvarc.h \
     drawitems/lcvellipse.h \
     drawitems/lcvtext.h \
-    drawitems/lcvcoordinate.h
+    drawitems/lcvcoordinate.h \
+    events/ui/uiarea.h \
+    events/ui/uibase.h \
+    events/ui/uiscene.h \
+    events/ui/uievents.h \
+    events/ui/uikeyboardevent.h \
+    events/ui/uimousemoveevent.h \
+    events/ui/uimouseevent.h
 
 SOURCES     = lcadviewerplugin.cpp \
     lcadviewer.cpp \
@@ -90,4 +99,11 @@ SOURCES     = lcadviewerplugin.cpp \
     drawitems/lcvellipse.cpp \
     drawitems/lcvtext.cpp \
     drawitems/endcaps.cpp \
-    drawitems/lcvcoordinate.cpp
+    drawitems/lcvcoordinate.cpp \
+    events/ui/uiarea.cpp \
+    events/ui/uibase.cpp \
+    events/ui/uiscene.cpp \
+    events/ui/uievents.cpp \
+    events/ui/uikeyboardevent.cpp \
+    events/ui/uimousemoveevent.cpp \
+    events/ui/uimouseevent.cpp
