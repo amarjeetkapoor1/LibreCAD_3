@@ -4,6 +4,8 @@ ADD_DEFINITIONS(-std=c++14)
 ADD_DEFINITIONS("-Wall")
 #ADD_DEFINITIONS("-Wno-missing-braces")
 
+message(${CMAKE_SOURCE_DIR})
+
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # SOURCE FILES
@@ -25,6 +27,7 @@ cad/geometry/geocoordinate.cpp
 cad/geometry/geoellipse.cpp
 cad/geometry/geospline.cpp
 cad/geometry/geobezier.cpp
+cad/geometry/geobeziercubic.cpp
 cad/math/lcmath.cpp
 cad/math/equation.cpp
 cad/math/intersectionhandler.cpp
@@ -72,12 +75,15 @@ cad/document/storagemanager.h
 cad/document/undomanager.h
 cad/events/addentityevent.h
 cad/events/addlayerevent.h
+cad/events/addlinepatternevent.h
 cad/events/beginprocessevent.h
 cad/events/commitprocessevent.h
 cad/events/removeentityevent.h
 cad/events/removelayerevent.h
+cad/events/removelinepatternevent.h
 cad/events/replaceentityevent.h
 cad/events/replacelayerevent.h
+cad/events/replacelinepatternevent.h
 cad/functions/ftrim.h
 cad/functions/intersect.h
 cad/geometry/geobase.h
@@ -88,7 +94,9 @@ cad/geometry/geocircle.h
 cad/geometry/geoellipse.h
 cad/geometry/geospline.h
 cad/geometry/geovector.h
+cad/geometry/geobezierbase.h
 cad/geometry/geobezier.h
+cad/geometry/geobeziercubic.h
 cad/interface/entitydispatch.h
 cad/interface/metatype.h
 cad/interface/snapable.h
@@ -154,8 +162,10 @@ set(SEPARATE_BUILD OFF)
 
 if (SEPARATE_BUILD STREQUAL "ON")
     include_directories("${CMAKE_SOURCE_DIR}")
+    include_directories("${CMAKE_SOURCE_DIR}/../third_party")
 else()
     include_directories("${CMAKE_SOURCE_DIR}/lckernel")
+    include_directories("${CMAKE_SOURCE_DIR}/third_party")
 endif()
 
 # DEBUGGING PATHS
@@ -165,7 +175,7 @@ foreach(dir ${dirs})
 endforeach()
 
 add_library(lckernel SHARED ${lckernel_srcs} ${lckernel_hdrs} )
-target_link_libraries(lckernel ${LOG4CXX_LIBRARIES} )
+target_link_libraries(lckernel opennurbs ${LOG4CXX_LIBRARIES} )
 # INSTALLATION
 install(TARGETS lckernel DESTINATION lib)
 install(FILES ${kernel_hdrs}  DESTINATION include)

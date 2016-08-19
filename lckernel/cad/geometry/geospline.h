@@ -3,7 +3,11 @@
 #include "geobase.h"
 #include "geocoordinate.h"
 #include <vector>
+#include "opennurbs_20130711/opennurbs.h"
 #include "cad/base/visitor.h"
+#include "cad/geometry/geobezierbase.h"
+#include "cad/geometry/geobezier.h"
+#include "cad/geometry/geobeziercubic.h"
 
 namespace lc {
     namespace geo {
@@ -32,7 +36,10 @@ namespace lc {
                         _fitTolerance(fitTolerance),
                         _sTanX(stanx), _sTanY(stany), _sTanZ(stanz),
                         _eTanX(etanx), _eTanY(etany), _eTanZ(etanz),
-                        _nX(nx), _nY(ny), _nZ(nz), _flags(flags) {}
+                        _nX(nx), _nY(ny), _nZ(nz), _flags(flags) {
+                    populateCurve();
+                    generateBeziers();
+                }
 
                 /**
                  * @brief control_points, Returns Control points of spline
@@ -86,7 +93,11 @@ namespace lc {
                  * @return bool closed
                  */
                 bool closed() const;
+                const std::vector<BB_CSPtr> beziers() const;
+                void generateBeziers();
+                void trimAtPoint(const geo::Coordinate& c);
 
+                void populateCurve();
                 /*!
                  * \brief returns the nearest Point On Path
                  * \param lc::geo::Coordinate coord
@@ -118,7 +129,8 @@ namespace lc {
                 const double _nX;  // normal vector x coordinate
                 const double _nY;  // normal vector y coordinate
                 const double _nZ;  // normal vector z coordinate
-
+                ON_NurbsCurve _splineCurve;
+                std::vector<BB_CSPtr> _beziers;
                 const splineflag _flags;
         };
     }

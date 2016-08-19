@@ -1,9 +1,9 @@
 #include "cad/math/intersectionhandler.h"
 using namespace lc;
 using namespace maths;
-
+#include <iostream>
 std::vector<geo::Coordinate> Intersection::LineLine(const Equation& l1,
-                                          const Equation& l2) {
+                                                    const Equation& l2) {
     std::vector<lc::geo::Coordinate> ret;
     const auto &m1 = l1.Matrix();
     const auto &m2 = l2.Matrix();
@@ -11,7 +11,7 @@ std::vector<geo::Coordinate> Intersection::LineLine(const Equation& l1,
     Eigen::Vector2d V;
 
     M << m1(2,0) + m1(0,2), m1(2,1) + m1(1,2),
-         m2(2,0) + m2(0,2), m2(2,1) + m2(1,2);
+            m2(2,0) + m2(0,2), m2(2,1) + m2(1,2);
     V << -m1(2,2), -m2(2,2);
 
     Eigen::Vector2d R = M.colPivHouseholderQr().solve(V);
@@ -20,21 +20,21 @@ std::vector<geo::Coordinate> Intersection::LineLine(const Equation& l1,
 }
 
 std::vector<lc::geo::Coordinate> Intersection::LineQuad(const Equation& l1,
-                                          const Equation& q1) {
+                                                        const Equation& q1) {
     auto &&tcoords = QuadQuad(l1.flipXY(), q1.flipXY());
     std::transform(tcoords.begin(), tcoords.end(), tcoords.begin(), [](const lc::geo::Coordinate &c)  { return std::move(c.flipXY()); });
     return tcoords;
 }
 
 std::vector<lc::geo::Coordinate> Intersection::QuadQuad(const Equation& l1,
-                                           const Equation& l2) {
+                                                        const Equation& l2) {
     const auto &m1 = l1.Matrix();
     const auto &m2 = l2.Matrix();
 
     if (std::abs(m1(0, 0)) < LCTOLERANCE && std::abs(m1(0, 1)) < LCTOLERANCE
-        &&
-        std::abs(m2(0, 0)) < LCTOLERANCE && std::abs(m2(0, 1)) < LCTOLERANCE
-       ) {
+            &&
+            std::abs(m2(0, 0)) < LCTOLERANCE && std::abs(m2(0, 1)) < LCTOLERANCE
+            ) {
         if (std::abs(m1(1, 1)) < LCTOLERANCE && std::abs(m2(1, 1)) < LCTOLERANCE) {
             return LineLine(l1, l2);
         }
@@ -48,34 +48,48 @@ std::vector<lc::geo::Coordinate> Intersection::QuadQuad(const Equation& l1,
 }
 
 
-std::vector<geo::Coordinate> Intersection::BezierLine(
-    const geo::Bezier& B, const geo::Vector& V) {
+std::vector<geo::Coordinate> Intersection::bezierLine(
+        geo::BB_CSPtr B, const geo::Vector& V) {
 
     std::vector<geo::Coordinate> ret;
+    std::vector<double> roots;
 
-    auto ml = geo::Vector(V.start() - V.start(), V.end() - V.start());
-    auto rotate_angle = -ml.Angle1();
+    auto pts = B->getCP();
 
-    auto rl = geo::Vector(ml.start().rotate(ml.start(), rotate_angle), ml.end().rotate(ml.start(), rotate_angle));
-    auto moved_bezier = geo::Bezier(B.pointA() -V.start(), B.pointB() -V.start(), B.pointC() -V.start());
-    auto rb = moved_bezier.rotate(ml.start(), rotate_angle);
+    if(pts.size()==3) {
+        auto ml = geo::Vector(V.start() - V.start(), V.end() - V.start());
+        auto rotate_angle = -ml.Angle1();
+        auto cps = B->move(-V.start())->rotate(ml.start(), rotate_angle)->getCP();
 
-    auto t2 = rb.pointA().y() - 2*rb.pointB().y() + rb.pointC().y();
-    auto t1 = 2*(rb.pointB().y() - rb.pointA().y())/t2;
-    auto coeff = rb.pointA().y()/t2;
+        auto t2 = cps[0].y() - 2*cps[1].y() + cps[2].y();
+        auto t1 = 2*(cps[1].y() - cps[0].y())/t2;
+        auto coeff = cps[0].y()/t2;
 
-    auto roots = lc::Math::quadraticSolver({t1, coeff});
+        roots = lc::Math::quadraticSolver({t1, coeff});
+    } else {
+        auto ml = geo::Vector(V.start() - V.start(), V.end() - V.start());
+        auto rotate_angle = -ml.Angle1();
+        auto cps = B->move(-V.start())->rotate(ml.start(), rotate_angle)->getCP();
+
+        auto t3 = -cps[0].y() + 3*cps[1].y() - 3*cps[2].y() + cps[3].y();
+        auto t2 = (3*cps[0].y() - 6*cps[1].y() + 3*cps[2].y())/t3;
+        auto t1 = (-3*cps[0].y() +3*cps[1].y())/t3;
+        auto coeff = cps[0].y()/t3;
+
+        roots = lc::Math::cubicSolver({t2, t1, coeff});
+    }
     for(const auto &root : roots) {
         if(root > 0 && root < 1) {
-            ret.push_back(B.DirectValueAt(root));
+            ret.push_back(B->DirectValueAt(root));
         }
     }
+
     return ret;
 }
 
 
-std::vector<geo::Coordinate> Intersection::BezierCircle(
-    const geo::Bezier& B, const geo::Circle& C) {
+std::vector<geo::Coordinate> Intersection::bezierCircle(
+        geo::BB_CSPtr B, const geo::Circle& C) {
 
     std::vector<geo::Coordinate> ret;
 
@@ -84,45 +98,67 @@ std::vector<geo::Coordinate> Intersection::BezierCircle(
     // (((a - 2b + c)t^2 + 2t(b-a) + a) - d)^2 + (((e - 2f + g)t^2 + 2t(f-e) + e) - h)^2 - r^2
 
     // Solving this for T will get the required intersection
+    std::vector<double>roots;
 
-    auto r = C.radius();
-    auto d = C.center().x();
-    auto h = C.center().y();
+    auto points = B->getCP();
 
-    auto a = B.pointA().x();
-    auto b = B.pointB().x();
-    auto c = B.pointC().x();
+    if(points.size()== 3) {
 
-    auto e = B.pointA().y();
-    auto f = B.pointB().y();
-    auto g = B.pointC().y();
+        auto r = C.radius();
+        auto d = C.center().x();
+        auto h = C.center().y();
 
-    auto t4 = (g*g + (2*e - 4*f)*g + 4* f*f - 4* e * f + e*e + c*c + (2*a-4*b)*c + 4*b*b - 4*a*b + a*a);
-    auto t3 = ((4*f - 4*e)*g - 8*f*f + 12*e*f - 4*e*e + (4*b - 4*a)*c - 8*b*b + 12*a*b -4*a*a)/t4;
-    auto t2 = ((-2*g + 4*f -2*e)*h + 2*e*g + 4*f*f - 12*e*f + 6*e*e + (-2*c + 4*b - 2*a)*d + 2*a*c + 4*b*b -12*a*b + 6*a*a)/t4;
-    auto t1 = ((4*e - 4*f)*h + 4*e*f - 4*e*e + (4*a - 4*b)*d + 4*a*b -4*a*a)/t4;
-    auto coeff = (-r*r + h*h -2 *e*h + e*e + d*d - 2*a*d + a*a)/t4;
+        auto a = points.at(0).x();
+        auto b = points.at(1).x();
+        auto c = points.at(2).x();
 
-    auto roots = lc::Math::quarticSolver({t3, t2, t1, coeff});
+        auto e = points.at(0).y();
+        auto f = points.at(1).y();
+        auto g = points.at(2).y();
 
-    for(const auto &root : roots) {
-        if(root > 0 && root < 1) {
-            ret.push_back(B.DirectValueAt(root));
+        auto t4 = (g*g + (2*e - 4*f)*g + 4* f*f - 4* e * f + e*e + c*c + (2*a-4*b)*c + 4*b*b - 4*a*b + a*a);
+        auto t3 = ((4*f - 4*e)*g - 8*f*f + 12*e*f - 4*e*e + (4*b - 4*a)*c - 8*b*b + 12*a*b -4*a*a)/t4;
+        auto t2 = ((-2*g + 4*f -2*e)*h + 2*e*g + 4*f*f - 12*e*f + 6*e*e + (-2*c + 4*b - 2*a)*d + 2*a*c + 4*b*b -12*a*b + 6*a*a)/t4;
+        auto t1 = ((4*e - 4*f)*h + 4*e*f - 4*e*e + (4*a - 4*b)*d + 4*a*b -4*a*a)/t4;
+        auto coeff = (-r*r + h*h -2 *e*h + e*e + d*d - 2*a*d + a*a)/t4;
+
+        roots = lc::Math::quarticSolver({t3, t2, t1, coeff});
+
+        for(const auto &root : roots) {
+            if(root > 0 && root < 1) {
+                ret.push_back(B->DirectValueAt(root));
+            }
         }
+
+    } else {
+
+        // get outer Bounding box
+
+        geo::Area Ar = geo::Area(geo::Coordinate(C.center().x() - C.radius(), C.center().y() - C.radius()),
+                         geo::Coordinate(C.center().x() + C.radius(), C.center().y() + C.radius()));
+
+        // get inner Bounding box
+
+        auto newRad = C.radius() * 0.7071;
+
+        geo::Area minAr = geo::Area(geo::Coordinate(C.center().x() - newRad, C.center().y() - newRad),
+                                   geo::Coordinate(C.center().x() + newRad, C.center().y() + newRad));
+
+        bezCir(C, Ar, minAr, B, ret);
     }
     return ret;
 }
 
 
-std::vector<geo::Coordinate> Intersection::BezierArc(
-    const geo::Bezier& B, const geo::Arc& A) {
+std::vector<geo::Coordinate> Intersection::bezierArc(
+        geo::BB_CSPtr B, const geo::Arc& A) {
 
     // BezierCircle Intersection
 
     // Check intersection points are on Arc.
 
     std::vector<geo::Coordinate> ret;
-    const auto &points = BezierCircle(B, geo::Circle(A.center(), A.radius()));
+    const auto &points = bezierCircle(B, geo::Circle(A.center(), A.radius()));
 
     for(const auto & pt : points) {
         if(A.isAngleBetween(pt.angle())) {
@@ -133,42 +169,51 @@ std::vector<geo::Coordinate> Intersection::BezierArc(
 }
 
 
-std::vector<geo::Coordinate> Intersection::BezierEllipse(
-    const geo::Bezier& B, const geo::Ellipse& E) {
-
+std::vector<geo::Coordinate> Intersection::bezierEllipse(
+        geo::BB_CSPtr B, const geo::Ellipse& E) {
+    std::vector<double> roots;
     std::vector<geo::Coordinate> arc_ret, ret;
+
 
     auto C = geo::Ellipse(E.center() - E.center(), E.majorP(), E.minorRadius(), E.startAngle(), E.endAngle())
             .georotate(geo::Coordinate(0,0), -E.getAngle())
             .geoscale(geo::Coordinate(0,0), geo::Coordinate(1/E.ratio(),1));
 
-    auto bez = B
-            .move(-E.center()).rotate(geo::Coordinate(0,0), E.getAngle())
-            .scale(geo::Coordinate(0,0), geo::Coordinate(1/E.ratio(),1));
+    auto bez = B->move(-E.center())
+            ->rotate(geo::Coordinate(0,0), E.getAngle())
+            ->scale(geo::Coordinate(0,0), geo::Coordinate(1/E.ratio(),1));
 
-    auto r = C.minorRadius();
-    auto d = C.center().x();
-    auto h = C.center().y();
 
-    auto a = bez.pointA().x();
-    auto b = bez.pointB().x();
-    auto c = bez.pointC().x();
+    auto points = B->getCP();
 
-    auto e = bez.pointA().y();
-    auto f = bez.pointB().y();
-    auto g = bez.pointC().y();
+    if(points.size()== 3) {
+        auto r = C.minorRadius();
+        auto d = C.center().x();
+        auto h = C.center().y();
 
-    auto t4 = (g*g + (2*e - 4*f)*g + 4* f*f - 4* e * f + e*e + c*c + (2*a-4*b)*c + 4*b*b - 4*a*b + a*a);
-    auto t3 = ((4*f - 4*e)*g - 8*f*f + 12*e*f - 4*e*e + (4*b - 4*a)*c - 8*b*b + 12*a*b -4*a*a)/t4;
-    auto t2 = ((-2*g + 4*f -2*e)*h + 2*e*g + 4*f*f - 12*e*f + 6*e*e + (-2*c + 4*b - 2*a)*d + 2*a*c + 4*b*b -12*a*b + 6*a*a)/t4;
-    auto t1 = ((4*e - 4*f)*h + 4*e*f - 4*e*e + (4*a - 4*b)*d + 4*a*b -4*a*a)/t4;
-    auto coeff = (-r*r + h*h -2 *e*h + e*e + d*d - 2*a*d + a*a)/t4;
+        auto a = points.at(0).x();
+        auto b = points.at(1).x();
+        auto c = points.at(2).x();
 
-    auto roots = lc::Math::quarticSolver({t3, t2, t1, coeff});
+        auto e = points.at(0).y();
+        auto f = points.at(1).y();
+        auto g = points.at(2).y();
+
+        auto t4 = (g*g + (2*e - 4*f)*g + 4* f*f - 4* e * f + e*e + c*c + (2*a-4*b)*c + 4*b*b - 4*a*b + a*a);
+        auto t3 = ((4*f - 4*e)*g - 8*f*f + 12*e*f - 4*e*e + (4*b - 4*a)*c - 8*b*b + 12*a*b -4*a*a)/t4;
+        auto t2 = ((-2*g + 4*f -2*e)*h + 2*e*g + 4*f*f - 12*e*f + 6*e*e + (-2*c + 4*b - 2*a)*d + 2*a*c + 4*b*b -12*a*b + 6*a*a)/t4;
+        auto t1 = ((4*e - 4*f)*h + 4*e*f - 4*e*e + (4*a - 4*b)*d + 4*a*b -4*a*a)/t4;
+        auto coeff = (-r*r + h*h -2 *e*h + e*e + d*d - 2*a*d + a*a)/t4;
+
+        roots = lc::Math::quarticSolver({t3, t2, t1, coeff});
+
+    } else {
+        // TODO CUBIC BEZIER/ELLIPSE INTERSECTION
+    }
 
     for(const auto &root : roots) {
         if(root > 0 && root < 1) {
-            ret.push_back(B.DirectValueAt(root));
+            ret.push_back(B->DirectValueAt(root));
         }
     }
     if(E.isArc()) {
@@ -182,30 +227,128 @@ std::vector<geo::Coordinate> Intersection::BezierEllipse(
     return ret;
 }
 
-std::vector<geo::Coordinate> Intersection::BezierBezier(
-    const geo::Bezier& B1, const geo::Bezier& B2) {
+std::vector<geo::Coordinate> Intersection::bezierBezier(
+        geo::BB_CSPtr B1, geo::BB_CSPtr B2) {
     std::vector<geo::Coordinate> ret;
-    BezBez(B1,B2, ret);
+    bezBez(B1,B2, ret);
     return ret;
 }
 
-void Intersection::BezBez(const geo::Bezier& B1,const geo::Bezier& B2, std::vector<geo::Coordinate>&ret) {
-    auto bb1 = B1.boundingBox();
-    auto bb2 = B2.boundingBox();
+void Intersection::bezBez(const geo::BB_CSPtr B1,const geo::BB_CSPtr B2, std::vector<geo::Coordinate>&ret) {
+    auto bb1 = B1->boundingBox();
+    auto bb2 = B2->boundingBox();
 
     if(!bb1.overlaps(bb2)) {
         return;
     }
 
-    if(bb1.height() + bb2.height() <= BBHEURISTIC && bb1.width() + bb2.width() <= BBHEURISTIC) {
-        ret.push_back(B1.pointB());
+    if(bb1.height() + bb2.height() <= BBHEURISTIC2 && bb1.width() + bb2.width() <= BBHEURISTIC2) {
+        ret.push_back(B1->getCP().at(1));
         return;
     }
 
-    auto b1split = B1.splitHalf();
-    auto b2split = B2.splitHalf();
-    BezBez(b1split[0], b2split[0], ret);
-    BezBez(b1split[1], b2split[0], ret);
-    BezBez(b1split[0], b2split[1], ret);
-    BezBez(b1split[1], b2split[1], ret);
+    auto b1split = B1->splitHalf();
+    auto b2split = B2->splitHalf();
+    bezBez(b1split[0], b2split[0], ret);
+    bezBez(b1split[1], b2split[0], ret);
+    bezBez(b1split[0], b2split[1], ret);
+    bezBez(b1split[1], b2split[1], ret);
+}
+
+void Intersection::bezCir(const geo::Circle C, const geo::Area c_area, const geo::Area m_area, const geo::BB_CSPtr B2, std::vector<geo::Coordinate>&ret) {
+
+    auto bb2 = B2->boundingBox();
+    auto cmin = c_area.minP();
+    auto cmax = c_area.maxP();
+    auto bmin = bb2.minP();
+    auto bmax = bb2.maxP();
+    auto mmax = m_area.maxP();
+    auto mmin = m_area.minP();
+
+    // BOUNDING BOX CHECKS. I WOULD BE HAPPY IF SOMEHOW IN FUTURE WE REPLACE THIS METHOD WITH A MATHEMATICAL METHOD.
+
+    if((bmin.x() < cmin.x() && bmax.x() < cmin.x()) || (bmin.y() < cmin.y() && bmax.y() < cmin.y())
+            || (bmin.x() > cmax.x() && bmax.x() > cmax.x()) || (bmin.y() > cmax.y() && bmax.y() > cmax.y())) {
+        return;
+    }
+
+    if(bmin.x() > mmin.x() && bmax.x() < mmax.x() && bmin.y() > mmin.y() && bmax.y() < mmax.y()) {
+        return;
+    }
+
+    if(bb2.height() <= 1 || bb2.width() <= 1) {
+        return;
+    }
+
+    if(std::fabs(C.center().distanceTo(bb2.minP()) - C.radius()) <= 10 || std::fabs(C.center().distanceTo(bb2.maxP()) - C.radius()) <= 10 ) {
+        ret.push_back(B2->getCP().at(1));
+        return;
+    }
+    auto b2split = B2->splitHalf();
+    bezCir(C, c_area, m_area, b2split[0], ret);
+    bezCir(C, c_area, m_area, b2split[1], ret);
+
+}
+
+std::vector<geo::Coordinate> Intersection::splineLine(geo::Spline B, const geo::Vector& V) {
+    std::vector<geo::Coordinate> ret;
+    auto beziers = B.beziers();
+    for(const auto & bezier : beziers) {
+        auto vecret = bezierLine(bezier, V);
+        ret.insert(ret.end(), vecret.begin(), vecret.end());
+    }
+    return ret;
+}
+
+std::vector<geo::Coordinate> Intersection::splineCircle(geo::Spline B, const geo::Circle& C) {
+    std::vector<geo::Coordinate> ret;
+    auto beziers = B.beziers();
+    for(const auto & bezier : beziers) {
+        auto vecret = bezierCircle(bezier, C);
+        ret.insert(ret.end(), vecret.begin(), vecret.end());
+    }
+    return ret;
+}
+
+std::vector<geo::Coordinate> Intersection::splineArc(geo::Spline B, const geo::Arc& A) {
+    std::vector<geo::Coordinate> ret;
+    auto beziers = B.beziers();
+    for(const auto & bezier : beziers) {
+        auto vecret = bezierArc(bezier, A);
+        ret.insert(ret.end(), vecret.begin(), vecret.end());
+    }
+    return ret;
+}
+
+std::vector<geo::Coordinate> Intersection::splineEllipse(geo::Spline B, const geo::Ellipse& E) {
+    std::vector<geo::Coordinate> ret;
+    auto beziers = B.beziers();
+    for(const auto & bezier : beziers) {
+        auto vecret = bezierEllipse(bezier, E);
+        ret.insert(ret.end(), vecret.begin(), vecret.end());
+    }
+    return ret;
+}
+
+std::vector<geo::Coordinate> Intersection::splineSpline(geo::Spline B1, geo::Spline B2) {
+    std::vector<geo::Coordinate> ret;
+    auto beziers = B1.beziers();
+    auto beziers2 = B2.beziers();
+    for(const auto & bezier : beziers) {
+        for(const auto & bezier2 : beziers2) {
+            auto vecret = bezierBezier(bezier, bezier2);
+            ret.insert(ret.end(), vecret.begin(), vecret.end());
+        }
+    }
+    return ret;
+}
+
+std::vector<geo::Coordinate> Intersection::splineBezier(geo::Spline B1, geo::BB_CSPtr B2) {
+    std::vector<geo::Coordinate> ret;
+    auto beziers = B1.beziers();
+    for(const auto & bezier : beziers) {
+        auto vecret = bezierBezier(bezier, B2);
+        ret.insert(ret.end(), vecret.begin(), vecret.end());
+    }
+    return ret;
 }

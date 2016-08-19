@@ -68,8 +68,8 @@ class LCADViewer : public QWidget {
         void setDragManager(DragManager_SPtr dragManager);
         std::shared_ptr<DocumentCanvas> documentCanvas() const;
         void autoScale() const {documentCanvas()->autoScale();}
-        double x();
-        double y();
+
+        void setOperationActive(bool operationActive);
 
     protected:
         void paintEvent(QPaintEvent*);
@@ -85,7 +85,7 @@ class LCADViewer : public QWidget {
     signals:
         void mouseMoveEvent();
         void mousePressEvent();
-        void mouseReleaseEvent(const MouseReleaseEvent&);
+        void mouseReleaseEvent();
         void drawEvent(const DrawEvent&);
         void selectedItemsEvent(const SelectedItemsEvent&);
     public slots:
@@ -101,7 +101,8 @@ class LCADViewer : public QWidget {
         bool _ctrlKeyActive;
         std::shared_ptr<DocumentCanvas> _docCanvas;
         bool _mouseScrollKeyActive;
-        bool _disableSelection;
+
+        bool _operationActive;
 
         std::map<LcPainter*,  QImage*> imagemaps;
 
@@ -111,8 +112,6 @@ class LCADViewer : public QWidget {
         int v_ = 0;
         int h_ = 0;
 
-        double posX;
-        double posY;
 
         // When set to true, the line width on screen will scale with teh zoom factor
         bool _scaleLineWidth;

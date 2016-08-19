@@ -4,6 +4,7 @@
 
 namespace LuaIntf {
     LUA_USING_SHARED_PTR_TYPE(std::shared_ptr)
+	LUA_USING_LIST_TYPE(std::vector)
 }
 
 void luaOpenQtBridge(lua_State *L) {	
@@ -44,8 +45,9 @@ void addQtBaseBindings(lua_State *L) {
 		.endClass()
 
 		.beginExtendClass<QAction, QObject>("QAction")
-			.addConstructor(LUA_ARGS(QObject*))
+			.addConstructor(LUA_ARGS(LuaIntf::_opt<QObject*>))
 			.addFunction("setText", &QAction::setText)
+			.addFunction("setIcon", &QAction::setIcon)
 		.endClass()
 
 		.beginClass<QIcon>("QIcon")
@@ -77,7 +79,9 @@ void addQtWindowBindings(lua_State *L) {
 		.endClass()
 
 		.beginExtendClass<QMenu, QWidget>("QMenu")
-			.addConstructor(LUA_ARGS(QWidget*))
+			.addFactory([]() {
+				return new QMenu();
+			})
 			.addFunction("setTitle", &QMenu::setTitle)
 			.addFunction("addActionStr", static_cast<QAction* (QMenu::*)(const QString&)>(&QMenu::addAction))
 		.endClass()
@@ -108,6 +112,9 @@ void addQtWindowBindings(lua_State *L) {
 		.beginExtendClass<QFileDialog, QDialog>("QFileDialog")
 			.addStaticFunction("getOpenFileName", [](QWidget *parent, QString& caption, QString& dir, QString& filter) {
 				return QFileDialog::getOpenFileName(parent, caption, dir, filter);
+			})
+			.addStaticFunction("getSaveFileName", [](QWidget *parent, QString& caption, QString& dir, QString& filter) {
+				return QFileDialog::getSaveFileName(parent, caption, dir, filter);
 			})
 		.endClass()
 
@@ -150,11 +157,15 @@ void addQtWidgetsBindings(lua_State *L) {
 			.addFunction("setIconSize", &QAbstractButton::setIconSize)
 		.endClass()
 
+        .beginExtendClass<QComboBox, QWidget>("QComboBox")
+        .endClass()
+
 		.beginExtendClass<QPushButton, QAbstractButton>("QPushButton")
 			.addFactory([](QString name) {
 				return new QPushButton(name);
 			})
 			.addFunction("setFlat", &QPushButton::setFlat)
+			.addFunction("setMenu", &QPushButton::setMenu)
 		.endClass()
 	.endModule();
 }
@@ -169,13 +180,14 @@ void addLCBindings(lua_State *L) {
 			})
 			.addFunction("cursor", &CadMdiChild::cursor)
 			.addFunction("document", &CadMdiChild::document)
+            .addFunction("exportDXF", &CadMdiChild::exportDXF)
 			.addProperty("id", &CadMdiChild::id, &CadMdiChild::setId)
 			.addFunction("import", &CadMdiChild::import)
+			.addFunction("selection", &CadMdiChild::selection)
 			.addFunction("newDocument", &CadMdiChild::newDocument)
 			.addFunction("setDestroyCallback", &CadMdiChild::setDestroyCallback)
 			.addFunction("tempEntities", &CadMdiChild::tempEntities)
 			.addFunction("undoManager", &CadMdiChild::undoManager)
-			.addFunction("view", &CadMdiChild::view)
 			.addFunction("viewer", &CadMdiChild::viewer)
 		.endClass()
 
@@ -187,11 +199,13 @@ void addLCBindings(lua_State *L) {
 			.addFunction("x", &LCViewer::LCADViewer::x)
 			.addFunction("y", &LCViewer::LCADViewer::y)
 			.addFunction("autoScale", &LCViewer::LCADViewer::autoScale)
+			.addFunction("setOperationActive", &LCViewer::LCADViewer::setOperationActive)
 		.endClass()
 		
 		.beginClass<LuaInterface>("LuaInterface")
 			.addFunction("luaConnect", &LuaInterface::luaConnect)
 			.addFunction("connect", &LuaInterface::qtConnect)
+			.addFunction("pluginList", &LuaInterface::pluginList)
 		.endClass()
 		
 		.beginExtendClass<LuaScript, QDockWidget>("LuaScript")
@@ -206,6 +220,7 @@ void addLCBindings(lua_State *L) {
 			.addConstructor(LUA_SP(std::shared_ptr<CliCommand>), LUA_ARGS(LuaIntf::_opt<QWidget*>))
 			.addFunction("addCommand", &CliCommand::addCommand)
 			.addFunction("write", &CliCommand::write, LUA_ARGS(const char*))
+			.addFunction("returnText", &CliCommand::returnText)
 		.endClass()
 
 		.beginExtendClass<Toolbar, QDockWidget>("Toolbar")
@@ -220,28 +235,68 @@ void addLCBindings(lua_State *L) {
 				return new ToolbarTab();
 			})
 			.addFunction("addButton", &ToolbarTab::addButton, LUA_ARGS(QGroupBox*,
-																	   QPushButton*,
-																	   LuaIntf::_opt<int>,
-																	   LuaIntf::_opt<int>,
-																	   LuaIntf::_opt<int>,
-																	   LuaIntf::_opt<int>))
-			.addFunction("addButtonStr", &ToolbarTab::addButtonStr, LUA_ARGS(QGroupBox*,
 																			 const char*,
 																			 LuaIntf::_opt<int>,
 																			 LuaIntf::_opt<int>,
 																			 LuaIntf::_opt<int>,
 																			 LuaIntf::_opt<int>))
+            .addFunction("addWidget", &ToolbarTab::addWidget, LUA_ARGS(QGroupBox*,
+                                                                         QWidget*,
+                                                                         LuaIntf::_opt<int>,
+                                                                         LuaIntf::_opt<int>,
+                                                                         LuaIntf::_opt<int>,
+                                                                         LuaIntf::_opt<int>))
 			.addFunction("addGroup", &ToolbarTab::addGroup)
 			.addFunction("buttonByText", &ToolbarTab::buttonByText)
 			.addFunction("groupByName", &ToolbarTab::groupByName)
+			.addFunction("removeGroup", &ToolbarTab::removeGroup)
 		.endClass()
 
 		.beginClass<LCViewer::TempEntities>("TempEntities")
 			.addFunction("addEntity", &LCViewer::TempEntities::addEntity)
 			.addFunction("removeEntity", &LCViewer::TempEntities::removeEntity)
 		.endClass()
+
+		.beginExtendClass<Layers, QDockWidget>("Layers")
+            .addFactory([]() {
+                return new Layers();
+            })
+			.addFunction("activeLayer", &Layers::activeLayer)
+			.addFunction("setDocument", &Layers::setDocument, LUA_ARGS(LuaIntf::_opt<lc::Document_SPtr>))
+		.endClass()
+
+		.beginExtendClass<LinePatternManager, QDialog>("LinePatternManager")
+            .addFactory([](lc::Document_SPtr document){
+                return new LinePatternManager(document);
+            })
+            .addFunction("setDocument", &LinePatternManager::setDocument)
+        .endClass()
+
+        .beginExtendClass<LinePatternSelect, QComboBox>("LinePatternSelect")
+            .addFactory([](QWidget* parent, bool showByLayer, bool showByBlock){
+                return new LinePatternSelect(nullptr, parent, showByLayer, showByBlock);
+            })
+            .addFunction("setDocument", &LinePatternSelect::setDocument, LUA_ARGS(LuaIntf::_opt<lc::Document_SPtr>))
+            .addFunction("linePattern", &LinePatternSelect::linePattern)
+        .endClass()
+
+        .beginExtendClass<LineWidthSelect, QComboBox>("LineWidthSelect")
+            .addFactory([](QWidget* parent, bool showByLayer, bool showByBlock){
+                return new LineWidthSelect(parent, showByLayer, showByBlock);
+            })
+            .addFunction("lineWidth", &LineWidthSelect::lineWidth)
+        .endClass()
+
+        .beginExtendClass<ColorSelect, QComboBox>("ColorSelect")
+            .addFactory([](QWidget* parent, bool showByLayer, bool showByBlock){
+                return new ColorSelect(parent, showByLayer, showByBlock);
+            })
+            .addFunction("metaColor", &ColorSelect::metaColor)
+        .endClass()
+
 	.endModule();
 }
+
 
 void addQtMetaTypes() {
 	qRegisterMetaType<lc::geo::Coordinate>();

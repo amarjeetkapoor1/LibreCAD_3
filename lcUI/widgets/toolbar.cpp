@@ -14,7 +14,7 @@ Toolbar::~Toolbar() {
 	delete ui;
 }
 
-void Toolbar::addTab(const char* name, QWidget* page) {
+void Toolbar::addTab(const char* name, ToolbarTab* page) {
 	ui->tabWidget->addTab(page, tr(name));
 }
 
@@ -27,12 +27,12 @@ void Toolbar::removeTab(QWidget *page) {
 	ui->tabWidget->removeTab(index);
 }
 
-QWidget *Toolbar::tabByName(const char *name) {
+ToolbarTab* Toolbar::tabByName(const char *name) {
 	auto nbTab = ui->tabWidget->count();
 
 	for(int i = 0; i < nbTab; i++) {
 		if(ui->tabWidget->tabText(i) == name) {
-			return ui->tabWidget->widget(i);
+			return dynamic_cast<ToolbarTab*>(ui->tabWidget->widget(i));
 		}
 	}
 

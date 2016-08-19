@@ -88,6 +88,7 @@ DocumentCanvas::~DocumentCanvas() {
 
     if (_selectedArea != nullptr) {
         delete _selectedArea;
+        _selectedArea = nullptr;
     }
 }
 
@@ -99,6 +100,7 @@ void DocumentCanvas::removePainters()  {
 
     if (_selectedArea != nullptr) {
         delete _selectedArea;
+        _selectedArea = nullptr;
     }
 }
 
@@ -242,7 +244,7 @@ void DocumentCanvas::transY(int y) {
 void DocumentCanvas::autoScale() {
     auto extends = _entityContainer.boundingBox();
     double zoom = std::min(_deviceWidth / extends.width(), _deviceHeight / extends.height());
-    this->zoom(zoom, false, extends.width() / 2 + extends.minP().x(), extends.height() / 2. + extends.minP().y(), _deviceWidth / 2., _deviceHeight / 2.);
+//    this->zoom(zoom, false, extends.width() / 2 + extends.minP().x(), extends.height() / 2. + extends.minP().y(), _deviceWidth / 2., _deviceHeight / 2.);
 }
 
 void DocumentCanvas::render(std::function<void(LcPainter&)> before, std::function<void(LcPainter&)> after) {
@@ -359,25 +361,26 @@ void DocumentCanvas::drawEntity(LCVDrawItem_CSPtr entity) {
 	// Used to give the illusation from slightly thinner lines. Not sure yet what to d with it and if I will keep it
 	double alpha_compensation = 0.9;
 
-	// Decide on line width
+    // Decide on line width
+    // We multiply for now by 3 to ensure that 1mm lines will still appear thicker on screen
+    // TODO: Find a better algo
+    double width;
 	if (entityLineWidth != nullptr) {
-		// We multiply for now by 3 to ensure that 1mm lines will still appear thicker on screen
-		// TODO: Find a better algo
-		double width = entityLineWidth->width() * 1.5;
-		// Is this correct? May be we should decide on a different minimum width then 0.1, because may be on some devices 0.11 isn't visible?
-		painter.line_width(std::max(width, MINIMUM_READER_LINEWIDTH));
+		width = entityLineWidth->width() * 1.5;
 	} else {
-		// We multiply for now by 3 to ensure that 1mm lines will still appear thicker on screen
-		// TODO: Find a better algo
-		double width = layer->lineWidth().width() * 1.5;
-		// Is this correct? May be we should decide on a different minimum width then 0.1, because may be on some devices 0.11 isn't visible?
-		painter.line_width(std::max(width, MINIMUM_READER_LINEWIDTH));
+		width = layer->lineWidth().width() * 1.5;
 	}
+    // Is this correct? May be we should decide on a different minimum width then 0.1, because may be on some devices 0.11 isn't visible?
+    painter.line_width(std::max(width, MINIMUM_READER_LINEWIDTH));
 
-	if (entityLinePattern != nullptr && entityLinePattern->lcPattern().size()>0) {
-		const double* path = &entityLinePattern->lcPattern()[0];
-		painter.set_dash(path, entityLinePattern->lcPattern().size(), 0., true);
+	if (entityLinePattern != nullptr && entityLinePattern->lcPattern(width).size()>0) {
+        auto path = entityLinePattern->lcPattern(width);
+		painter.set_dash(&path[0], path.size(), 0., true);
 	}
+    else if(layer->linePattern() != nullptr && layer->linePattern()->lcPattern(width).size() > 0) {
+        auto path = layer->linePattern()->lcPattern(width);
+        painter.set_dash(&path[0], path.size(), 0., true);
+    }
 
 	// Decide what color to render the entity into
 	if (entity->selected()) {
@@ -448,6 +451,7 @@ lc::geo::Area DocumentCanvas::bounds() const {
 void DocumentCanvas::makeSelection(double x, double y, double w, double h, bool occupies, bool addTo) {
     if (_selectedArea != nullptr) {
         delete _selectedArea;
+        _selectedArea = nullptr;
     }
 
     _selectedArea = new lc::geo::Area(lc::geo::Coordinate(x, y), lc::geo::Coordinate(x + w, y + h));

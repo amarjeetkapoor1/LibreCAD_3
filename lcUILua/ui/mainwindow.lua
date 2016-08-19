@@ -1,16 +1,11 @@
 op = {}
 
+--Create empty new window
 function new_file()
-    cadMdiChild = new_document()
-
-    window = mdiArea:addSubWindow(cadMdiChild)
-    cadMdiChild:showMaximized()
-
-    id = nextTableId(op)
-    op[id] = Operations(id)
-    window:widget().id = id
+    new_document()
 end
 
+--Create open file dialog, and create a new window containing this file
 function open_file()
     local fileName = qt.QFileDialog.getOpenFileName(
         mainWindow,
@@ -20,22 +15,80 @@ function open_file()
     )
 
     if(not fileName:isEmpty()) then
-        cadMdiChild = load_document(fileName:toStdString())
-
-        window = mdiArea:addSubWindow(cadMdiChild)
-        cadMdiChild:showMaximized()
-
-        id = nextTableId(op)
-        op[id] = Operations(id)
-        window:widget().id = id
+        new_document(fileName:toStdString())
     end
 end
 
+--Create save file dialog and save the file
+function save_file()
+    if(active_widget() == nil) then
+        return
+    end
+
+    local fileName = qt.QFileDialog.getSaveFileName(
+        mainWindow,
+        qt.QObject.tr("Save File"),
+        qt.QString(""),
+        qt.QObject.tr("dxf(*.dxf);;dwg(*.dwg)")
+    )
+
+    if(not fileName:isEmpty()) then
+        if(active_widget() == nil) then
+            return
+        end
+
+        active_widget():exportDXF(fileName:toStdString(), 6)
+    end
+end
+
+--Return the selected layer
+function active_layer()
+    return layers:activeLayer()
+end
+
+--Create MetaInfo containing every selected MetaTypes
+function active_metaInfo()
+    local metaInfo = MetaInfo()
+
+    local linePattern = linePatternSelect:linePattern()
+    if(linePattern ~= nil) then
+        metaInfo:addDxfLinePattern(linePattern)
+    end
+
+    local lineWidth = lineWidthSelect:lineWidth()
+    if(lineWidth ~= nil) then
+        metaInfo:add(lineWidth)
+    end
+
+    local color = colorSelect:metaColor()
+    if(color ~= nil) then
+        metaInfo:add(color)
+    end
+
+    return metaInfo
+end
+
+--Create dialog to enter Lua script
 local function open_lua_script()
     local luaScript = lc.LuaScript(mdiArea, cliCommand)
     luaScript:show()
 end
 
+--Called when a new window is focused, and refreshes all the widgets
+local function onSubWindowChanged(window)
+    local document = active_document()
+
+    --setDocument called without parameters to use nullptr
+    if(document == nil) then
+        layers:setDocument()
+        linePatternSelect:setDocument()
+    else
+        layers:setDocument(document)
+        linePatternSelect:setDocument(document)
+    end
+end
+
+--Create main window menu
 local function create_menu()
     local menuBar = mainWindow:menuBar()
     local drawMenu = menuBar:addMenuStr(qt.QString("Draw"))
@@ -48,6 +101,8 @@ local function create_menu()
 
     luaInterface:luaConnect(mainWindow:findChild("actionNew"), "triggered(bool)", new_file)
     luaInterface:luaConnect(mainWindow:findChild("actionOpen"), "triggered(bool)", open_file)
+    luaInterface:luaConnect(mainWindow:findChild("actionSave_2"), "triggered(bool)", save_file)
+    luaInterface:luaConnect(mainWindow:findChild("actionSave_As"), "triggered(bool)", save_file)
     luaInterface:luaConnect(mainWindow:findChild("actionUndo"), "triggered(bool)", undo)
     luaInterface:luaConnect(mainWindow:findChild("actionRedo"), "triggered(bool)", redo)
 
@@ -58,12 +113,14 @@ local function create_menu()
     luaInterface:luaConnect(luaScriptAction, "triggered(bool)", open_lua_script)
 end
 
+--Create main window and show it if required
 function create_main_window()
     mainWindow = qt.loadUi(ui_path .. "/mainwindow.ui")
     mainWindow:setWindowTitle(qt.QObject.tr("LibreCAD"));
     mainWindow:setUnifiedTitleAndToolBarOnMac(true);
 
     mdiArea = mainWindow:findChild("centralWidget"):findChild("mdiArea")
+    luaInterface:luaConnect(mdiArea, "subWindowActivated(QMdiSubWindow*)", onSubWindowChanged)
 
     mdiArea:setHorizontalScrollBarPolicy(0)
     mdiArea:setVerticalScrollBarPolicy(0)
@@ -74,13 +131,28 @@ function create_main_window()
 
     add_commandline()
 
+    layers = lc.Layers(active_document())
+    mainWindow:addDockWidget(2, layers)
+
+    linePatternSelect = lc.LinePatternSelect(mainWindow, true, true)
+    lineWidthSelect = lc.LineWidthSelect(mainWindow, true, true)
+    colorSelect = lc.ColorSelect(mainWindow, true, true)
+
+    luaInterface:connect(layers, "layerChanged(lc::Layer_CSPtr)", linePatternSelect, "onLayerChanged(lc::Layer_CSPtr)")
+    luaInterface:connect(layers, "layerChanged(lc::Layer_CSPtr)", lineWidthSelect, "onLayerChanged(lc::Layer_CSPtr)")
+    luaInterface:connect(layers, "layerChanged(lc::Layer_CSPtr)", colorSelect, "onLayerChanged(lc::Layer_CSPtr)")
+
     add_toolbar()
 
-    mainWindow:showMaximized()
+    if(hideUI ~= true) then
+        mainWindow:showMaximized()
+    end
 
     new_file()
 end
 
+--Get next available index in the table
+--It's used to store the CadMdiChild ids
 function nextTableId(table)
     count = 0
     for id, v in pairs(table) do

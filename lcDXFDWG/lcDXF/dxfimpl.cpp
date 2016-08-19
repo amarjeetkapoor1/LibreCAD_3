@@ -599,6 +599,33 @@ void DXFimpl::writeEllipse(const lc::entity::Ellipse_CSPtr s) {
     dxfW->writeEllipse(&el);
 }
 
+void DXFimpl::writeSpline(const lc::entity::Spline_CSPtr s) {
+    DRW_Spline sp;
+
+    getEntityAttributes(&sp, s);
+
+    sp.knotslist = s->knotPoints();
+    sp.normalVec = DRW_Coord(s->nX(), s->nY(), s->nZ());
+    sp.tgEnd = DRW_Coord(s->endTanX(), s->endTanY(), s->endTanZ());
+    sp.tgStart = DRW_Coord(s->startTanX(), s->startTanY(), s->startTanZ());
+    sp.degree = s->degree();
+
+    for(const auto & cp : s->controlPoints()) {
+        sp.controllist.push_back(new DRW_Coord(cp.x(), cp.y(), cp.z()));
+    }
+
+    for(const auto & fp : s->fitPoints()) {
+        sp.fitlist.push_back(new DRW_Coord(fp.x(), fp.y(), fp.z()));
+    }
+
+    sp.flags = s->flags();
+    sp.nknots = sp.knotslist.size();
+    sp.nfit = sp.fitlist.size();
+    sp.ncontrol = sp.controllist.size();
+
+    dxfW->writeSpline(&sp);
+}
+
 void DXFimpl::getEntityAttributes(DRW_Entity *ent, lc::entity::CADEntity_CSPtr entity) {
     auto layer_  = entity->layer();
     auto metaPen_ = entity->metaInfo<lc::DxfLinePattern>(lc::DxfLinePattern::LCMETANAME());

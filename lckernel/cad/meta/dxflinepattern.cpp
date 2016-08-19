@@ -10,7 +10,7 @@
 using namespace lc;
 
 DxfLinePattern::DxfLinePattern(const std::string &name, const std::string &description, const std::vector<double> &path, const double length) :
-        _name(name), _description(description), _path(path), _lcPattern(generatePattern(path, length)), _length(length) {
+        _name(name), _description(description), _path(path), _length(length) {
     assert(!StringHelper::isBlank(name) > 0 && "Name of DxfLinePattern must be given");
     // Continues has a path length of 0 assert(_path.size() > 0 && "Path length must be > 0");
 }
@@ -19,7 +19,7 @@ double DxfLinePattern::calculatePathLength(const std::vector<double> &_path) {
     return std::fabs(std::accumulate(_path.begin(), _path.end(), 0.));
 }
 
-std::vector<double> DxfLinePattern::generatePattern(const std::vector<double> &dxfPattern, const double length) const {
+std::vector<double> DxfLinePattern::generatePattern(const std::vector<double> &dxfPattern, const double length, const double lineWidth) const {
     // DXF Linestyle Pattern is as follows
     // Parameters pattern – is a list of float values, elements > 0 are solid line segments, elements < 0 are gaps and elements = 0 are points. pattern[0] = total pattern length in drawing units
     // w need to generate them as follows:
@@ -34,25 +34,18 @@ std::vector<double> DxfLinePattern::generatePattern(const std::vector<double> &d
         return dxfPat;
     }
 
-    std::vector<double> d;
-    d.push_back(0);
-    d.push_back(-5);
-    d.push_back(0);
-    d.push_back(-6);
-    d.push_back(10);
-
     double last = dxfPattern.at(0);
     bool isInk = true;
     for (auto d : dxfPattern) {
         if (d == 0.) { // dot
             if (isInk) {
-                dxfPat.push_back(.1);
+                dxfPat.push_back(lineWidth);
             } else {
                 dxfPat.push_back(0.);
-                dxfPat.push_back(.1);
+                dxfPat.push_back(lineWidth);
                 isInk = !isInk;
             }
-            d = last + 0.1;
+            d = last + 1;
         } else if (d < 0.) { // skip
             if (isInk) {
                 dxfPat.push_back(0.);
@@ -76,10 +69,20 @@ std::vector<double> DxfLinePattern::generatePattern(const std::vector<double> &d
 
     // Set length for this pattern
     double mul = length / last;
-    for (int i = 0; i < dxfPat.size(); i++) {
+    for (unsigned int i = 0; i < dxfPat.size(); i++) {
         dxfPat[i] = dxfPat[i] * mul;
     }
 
     return dxfPat;
 }
 
+const std::vector<double> DxfLinePattern::lcPattern(double lineWidth) const {
+    try {
+        return _lcPatterns.at(lineWidth);
+    }
+    catch (std::out_of_range &e) {
+        auto pattern = generatePattern(_path, _length, lineWidth);
+        _lcPatterns[lineWidth] = pattern;
+        return pattern;
+    }
+}

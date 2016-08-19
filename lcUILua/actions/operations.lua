@@ -1,7 +1,22 @@
-require 'actions.event'
+require 'kernel.event'
 require 'actions.lineoperations'
 require 'actions.circleoperations'
 require 'actions.arcoperations'
+require 'actions.ellipseoperations'
+require 'actions.dimalignedoperations'
+require 'actions.dimangularoperations'
+require 'actions.dimdiametricoperations'
+require 'actions.dimlinearoperations'
+require 'actions.dimradialoperations'
+require 'actions.splineoperations'
+require 'actions.lwpolylineoperations'
+
+require 'actions.moveoperation'
+require 'actions.rotateoperation'
+require 'actions.copyoperation'
+require 'actions.scaleoperation'
+require 'actions.removeoperation'
+require 'actions.trimoperation'
 
 Operations = {}
 Operations.__index = Operations
@@ -16,6 +31,7 @@ setmetatable(Operations, {
 
 function Operations:_init(id)
 	self.id = id
+	self.finished = false
 end
 
 function Operations:forMe()
@@ -36,4 +52,15 @@ function Operations:getAngle(center, point)
 	else
 		return point
 	end
+end
+
+function Operations:getCoordinate(coordinate)
+	if(type(coordinate) == "userdata") then
+		return coordinate
+	end
+
+	return nil
+end
+
+function Operations:close()
 end

@@ -24,42 +24,56 @@ set(UI_hdrs
 cadmdichild.h
 const.h
 luainterface.h
-operations/circlecreateoperation.h
-operations/groupoperations.h
-operations/guioperationfinishedevent.h
-operations/guioperation.h
-operations/linecreateoperation.h
-operations/operationmanager.h
-operations/qsnappedstate.h
-operations/trimoperation.h
 widgets/clicommand.h
 widgets/luascript.h
 widgets/toolbar.h
-        widgets/toolbartab.h
+widgets/toolbartab.h
+widgets/layers.h
+widgets/layermodel.h
+widgets/linepatternselect.h
+widgets/linepatternpainter.h
+widgets/linepatternpathpart.h
+widgets/linepatternmodel.h
+widgets/linewidthselect.h
+widgets/colorselect.h
 lua/qtbridge.h
-lua/luaqobject.h)
+lua/luaqobject.h
+dialogs/addlayerdialog.h
+dialogs/addlinepatterndialog.h
+dialogs/linepatternmanager.h)
 
 set(UI_srcs
 cadmdichild.cpp
 main.cpp
 luainterface.cpp
-operations/circlecreateoperation.cpp
-operations/linecreateoperation.cpp
-operations/operationmanager.cpp
-operations/qsnappedstate.cpp
-operations/trimoperation.cpp
 widgets/clicommand.cpp
 widgets/luascript.cpp
 widgets/toolbar.cpp
-        widgets/toolbartab.cpp
+widgets/toolbartab.cpp
+widgets/layers.cpp
+widgets/layermodel.cpp
+widgets/linepatternselect.cpp
+widgets/linepatternpainter.cpp
+widgets/linepatternpathpart.cpp
+widgets/linepatternmodel.cpp
+widgets/linewidthselect.cpp
+widgets/colorselect.cpp
 lua/qtbridge.cpp
-lua/luaqobject.cpp)
+lua/luaqobject.cpp
+dialogs/addlayerdialog.cpp
+dialogs/addlinepatterndialog.cpp
+dialogs/linepatternmanager.cpp)
 
 QT5_WRAP_UI(UI_HEADERS
 widgets/clicommand.ui
 widgets/luascript.ui
 widgets/toolbar.ui
-widgets/toolbartab.ui)
+widgets/toolbartab.ui
+widgets/layers.ui
+widgets/linepatternpathpart.ui
+dialogs/addlayerdialog.ui
+dialogs/addlinepatterndialog.ui
+dialogs/linepatternmanager.ui)
 
 qt5_add_resources(UI_RESOURCES
 ui/resource.qrc)
@@ -84,6 +98,7 @@ set(SEPARATE_BUILD OFF)
 
 if (SEPARATE_BUILD STREQUAL "ON")
 include_directories("${CMAKE_SOURCE_DIR}/../lckernel")
+include_directories("${CMAKE_SOURCE_DIR}/../third_party")
 include_directories("${CMAKE_SOURCE_DIR}/../lcDXFDWG")
 include_directories("${CMAKE_SOURCE_DIR}/../lcviewernoqt")
 include_directories("${CMAKE_SOURCE_DIR}/../lcviewerqt")
@@ -91,6 +106,7 @@ include_directories("${CMAKE_SOURCE_DIR}/../lcadluascript")
 include_directories("${CMAKE_SOURCE_DIR}/../lcUI")
 else() 
 include_directories("${CMAKE_SOURCE_DIR}/lckernel")
+include_directories("${CMAKE_SOURCE_DIR}/third_party")
 include_directories("${CMAKE_SOURCE_DIR}/lcDXFDWG")
 include_directories("${CMAKE_SOURCE_DIR}/lcviewernoqt")
 include_directories("${CMAKE_SOURCE_DIR}/lcviewerqt")
@@ -118,7 +134,7 @@ set(EXTRA_LIBS
 
 #Create library for unit tests
 if(WITH_UNITTESTS)
-    add_library(lcui SHARED ${UI_srcs} ${UI_hdrs})
+    add_library(lcui SHARED ${UI_srcs} ${UI_hdrs} ${UI_HEADERS} ${UI_RESOURCES})
     target_link_libraries(lcui ${EXTRA_LIBS})
 endif(WITH_UNITTESTS)
 

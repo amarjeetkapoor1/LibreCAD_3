@@ -57,9 +57,9 @@ function CircleOperations:getCircle(center, radius)
         radius = center:distanceTo(radius)
     end
 
-    local d = active_widget():document()
-    local layer = d:layerByName("0")
-    local c = Circle(center, radius, layer)
+    local layer = active_layer()
+    local metaInfo = active_metaInfo()
+    local c = Circle(center, radius, layer, metaInfo)
     c:setId(self.circle_id)
 
     return c
@@ -74,6 +74,7 @@ function CircleOperations:createTempCircle(point)
 end
 
 function CircleOperations:createCircle(point)
+    self.finished = true
     active_widget():tempEntities():removeEntity(self.circle)
 
     local b = Builder(active_widget():document())
@@ -84,4 +85,15 @@ function CircleOperations:createCircle(point)
     event.delete('mouseMove', self)
     event.delete('number', self)
     event.delete('point', self)
+end
+
+function CircleOperations:close()
+    if(not self.finished) then
+        active_widget():tempEntities():removeEntity(self.circle)
+        self.finished = true
+
+        event.delete('mouseMove', self)
+        event.delete('number', self)
+        event.delete('point', self)
+    end
 end

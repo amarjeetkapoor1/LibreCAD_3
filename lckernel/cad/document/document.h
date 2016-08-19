@@ -20,6 +20,10 @@
 #include "cad/events/removeentityevent.h"
 #include "cad/events/replaceentityevent.h"
 
+#include "cad/events/addlinepatternevent.h"
+#include "cad/events/removelinepatternevent.h"
+#include "cad/events/replacelinepatternevent.h"
+
 namespace lc {
 
     namespace entity {
@@ -73,6 +77,21 @@ namespace lc {
              * \brief Event to replace a layer
              */
             virtual  Nano::Signal<void(const lc::ReplaceLayerEvent&)>& replaceLayerEvent();
+        
+            /*!
+             * \brief Event to remove a line pattern
+             */
+            virtual  Nano::Signal<void(const lc::RemoveLinePatternEvent&)>& removeLinePatternEvent();
+
+            /*!
+             * \brief Event to add a line pattern
+             */
+            virtual  Nano::Signal<void(const lc::AddLinePatternEvent&)>& addLinePatternEvent();
+
+            /*!
+             * \brief Event to replace a line pattern
+             */
+            virtual  Nano::Signal<void(const lc::ReplaceLinePatternEvent&)>& replaceLinePatternEvent();
 
         protected:
             /*!
@@ -175,6 +194,11 @@ namespace lc {
              * @brief return a line pattern by it's name
              */
             virtual DxfLinePattern_CSPtr linePatternByName(const std::string& linePatternName) const = 0;
+
+            /**
+             * @brief return all line patterns
+             */
+            virtual std::vector<DxfLinePattern_CSPtr> linePatterns() const = 0;
         public:
             friend class lc::operation::DocumentOperation;
 
@@ -190,8 +214,11 @@ namespace lc {
             Nano::Signal<void(const lc::ReplaceLayerEvent&)>  _replaceLayerEvent;
             Nano::Signal<void(const lc::RemoveLayerEvent&)>  _removeLayerEvent;
 
+            Nano::Signal<void(const lc::AddLinePatternEvent&)>  _addLinePatternEvent;
+            Nano::Signal<void(const lc::ReplaceLinePatternEvent&)>  _replaceLinePatternEvent;
+            Nano::Signal<void(const lc::RemoveLinePatternEvent&)>  _removeLinePatternEvent;
     };
 
-
-
+    using Document_SPtr = std::shared_ptr<Document>;
+    using Document_CSPtr = std::shared_ptr<const Document>;
 }

@@ -1,32 +1,29 @@
 #include "luainterface.h"
 
 LuaInterface::LuaInterface() {
-	_L = luaL_newstate();
-	
-	luaL_openlibs(_L);
-	luaOpenQtBridge(_L);
-	lua_openlckernel(_L);
-
-	LuaIntf::Lua::setGlobal(_L, "luaInterface", this);
+	_L = LuaIntf::LuaState::newState();
 }
 
 LuaInterface::~LuaInterface() {
 	_luaQObjects.clear();
-	
-	lua_close(_L);
+
+	_L.close();
 }
 
 void LuaInterface::initLua() {
-	std::string out;
-	QString luaFile = QCoreApplication::applicationDirPath() + "/path.lua";
-	int s = luaL_dofile(_L, luaFile.toStdString().c_str());
+    luaL_openlibs(_L);
+    luaOpenQtBridge(_L);
+    lua_openlckernel(_L);
 
-	if (s != 0) {
-        out.append(lua_tostring(_L, -1));
+    LuaIntf::Lua::setGlobal(_L, "luaInterface", this);
+
+    QString luaFile = QCoreApplication::applicationDirPath() + "/path.lua";
+    int s = _L.doFile(luaFile.toStdString().c_str());
+
+    if (s != 0) {
+        std::cout << lua_tostring(_L, -1) << std::endl;
         lua_pop(_L, 1);
     }
-    
-    std::cout << out << std::endl;
 }
 
 bool LuaInterface::luaConnect(
@@ -82,9 +79,28 @@ bool LuaInterface::qtConnect(QObject *sender, std::string signalName, QObject *r
 
 	int slotId = receiver->metaObject()->indexOfSlot(slotName.c_str());
 	if(slotId < 0) {
-		std::cout << "No such slot " << signalName << std::endl;
+		std::cout << "No such slot " << slotName << std::endl;
 	}
 
 	return QMetaObject::connect(sender, signalId, receiver, slotId);
 }
 
+void LuaInterface::hideUI(bool hidden) {
+	LuaIntf::Lua::setGlobal(_L, "hideUI", hidden);
+}
+
+LuaIntf::LuaState LuaInterface::luaState() {
+	return _L;
+}
+
+std::vector<std::string> LuaInterface::pluginList(const char* path) {
+    std::vector<std::string> plugins;
+    QDir dir(path);
+
+    auto list = dir.entryList(QDir::Filter::Dirs | QDir::Filter::NoDotAndDotDot);
+    for(auto dir : list) {
+        plugins.push_back(dir.toStdString());
+    }
+
+    return plugins;
+}

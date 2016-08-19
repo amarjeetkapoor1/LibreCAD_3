@@ -39,6 +39,7 @@ end
 
 function LineOperations:newPoint(point)
     if(self.lastPoint ~= nil) then
+        self.finished = true
         active_widget():tempEntities():removeEntity(self.lastLine)
 
         local b = Builder(active_widget():document())
@@ -69,17 +70,28 @@ function LineOperations:createTempLine(point)
 end
 
 function LineOperations:createLine(p1, p2)
-    local d = active_widget():document()
-    local layer = d:layerByName("0")
-    local l
-    if(self.length == nil) then
-        l = Line(p1, p2, layer)
-    else
+    local layer = active_layer()
+    local metaInfo = active_metaInfo()
+
+    if(self.length ~= nil) then
         local angle = p1:angleTo(p2)
         local relativeCoordinate = Coordinate._fromAngle(angle):mulDouble(self.length)
-        l = Line(p1, p1:add(relativeCoordinate), layer)
+        p2 = p1:add(relativeCoordinate)
     end
+
+    local l = Line(p1, p2, layer, metaInfo)
     l:setId(self.line_id)
 
     return l
+end
+
+function LineOperations:close()
+    if(not self.finished) then
+        active_widget():tempEntities():removeEntity(self.lastLine)
+        self.finished = true
+
+        event.delete('mouseMove', self)
+        event.delete('number', self)
+        event.delete('point', self)
+    end
 end
