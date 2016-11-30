@@ -14,8 +14,16 @@ Compilation Instructions
 Install cairo  
 Install Qt 5  
 Install git  
-Install liblog4cxx  
+Install liblog4cxx
+Install pango
+Install libcurl 
+Install lua 
+Install Eigen3 
+Install Cmake
 Install Google test  
+Install lua 
+Install boost
+Install g++
  
 ```
 git clone --recursive https://github.com/LibreCAD/LibreCAD_3.git
